@@ -10,8 +10,8 @@ class ScanModel {
     LatLng getLatLng(){
       final latLng = valor.substring(4).split(',');
       final latitude = double.parse(latLng[0]);
-      final longitud = double.parse(latLng[1]);
-      return LatLng(latitude, longitud);
+      final longitude = double.parse(latLng[1]);
+      return LatLng(latitude, longitude);
     }
 
     ScanModel({

@@ -7,22 +7,38 @@ import 'package:qr_scan/providers/db_provider.dart';
 import 'package:qr_scan/providers/scan_list_provider.dart';
 import 'package:qr_scan/utils/utils.dart';
 
-class ScanButton extends StatelessWidget {
-  ScanButton({Key? key}) : super(key: key);
-  // Decalram el controller de la càmera i el provider(Ara comentat)
-  final MobileScannerController cameraController = MobileScannerController();
+class ScanButton extends StatefulWidget {
+  const ScanButton({Key? key}) : super(key: key);
+
+  @override
+  State<ScanButton> createState() => _ScanButtonState();
+}
+
+class _ScanButtonState extends State<ScanButton> {
+  final MobileScannerController cameraController =
+      MobileScannerController();
+
+  bool _isScanning = true;
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    //final scanListProvider = Provider.of<ScanListProvider>(context, listen: false);
+    final scanListProvider =
+        Provider.of<ScanListProvider>(context, listen: false);
+
     return FloatingActionButton(
       elevation: 0,
-      child: Icon(Icons.filter_center_focus),
-      onPressed: () async {
-        print('Botó polsat!');
+      child: const Icon(Icons.filter_center_focus),
+      onPressed: () {
         showDialog(
-          context: context,
-          builder: (BuildContext context) {
+          context: context, 
+          barrierDismissible: false,
+          builder: (_) {
             return AlertDialog(
               contentPadding: EdgeInsets.zero,
               content: SizedBox(
@@ -32,32 +48,35 @@ class ScanButton extends StatelessWidget {
                   children: [
                     MobileScanner(
                       controller: cameraController,
-                      onDetect: (BarcodeCapture capture) {
-                        // Obté el primer QR detectat.
+                      onDetect: (capture) async {
+                        if (!_isScanning) return;
+
                         final barcode = capture.barcodes.first;
-                        if (barcode.rawValue != null) {
-                          final String code = barcode.rawValue!;
-                          print(code);
-                          ScanModel nouScan = ScanModel(valor: code);
-                          // TODO: Afegir scan al provider i fer el launch url per exemple
-                          //scanListProvider.nouScan(code);
-                          Navigator.pop(context); // Tanca el diàleg
-                          //launchURL(context, nouScan);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('No s\'ha pogut llegir el QR.'),
-                            ),
-                          );
-                        }
+                        final String? code = barcode.rawValue;
+
+                        if (code == null) return;
+
+                        _isScanning = false;
+                        cameraController.stop();
+
+                        final nuevoScan = ScanModel(valor: code);
+
+                        scanListProvider.nouScan(code);
+
+                        Navigator.pop(context); 
+
+                        launchURL(context, nuevoScan);
                       },
                     ),
                     Positioned(
                       top: 10,
                       right: 10,
                       child: IconButton(
-                        icon: Icon(Icons.close, color: Colors.red),
-                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        onPressed: () {
+                          cameraController.start();
+                          Navigator.pop(context);
+                        },
                       ),
                     ),
                   ],
